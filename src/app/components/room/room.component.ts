@@ -27,7 +27,7 @@ type RestaurantRow = {
   cuisines?: string[] | string | null;
   cost_for_two?: string | null;
   must_try?: string | null;
-  open_until?: string | null;
+  open_until: string;
   latitude?: number | null;
   longitude?: number | null;
   address?: string | null;
@@ -361,7 +361,7 @@ export class RoomComponent implements OnInit, OnDestroy {
       cuisines: this.normalizeCuisines(row.cuisines),
       costForTwo: row.cost_for_two ?? 'Cost varies',
       mustTry: row.must_try ?? 'Ask the table for today\'s best pick',
-      openUntil: row.open_until ?? 'Late',
+      openUntil: row.open_until?.trim() ?? '',
       latitude: row.latitude ?? null,
       longitude: row.longitude ?? null,
       address: row.address ?? '',
