@@ -77,6 +77,27 @@
                     aria-label="Next photo"
                   ></button>
 
+                  @if (restaurant.openUntil) {
+                    <div
+                      class="pointer-events-none absolute right-3 top-7 flex items-center gap-1.5 rounded-full border border-yellow-400/40 bg-gray-950/80 px-3 py-1.5 text-xs font-bold text-yellow-400 shadow-lg shadow-black/40 backdrop-blur-sm"
+                    >
+                      <svg
+                        class="size-4 shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.25"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7v5l3 2" />
+                      </svg>
+                      <span>Closes at {{ restaurant.openUntil }}</span>
+                    </div>
+                  }
+
                   @if (index === 0 && swipeIntent() === 'right') {
                     <div class="absolute inset-4 flex items-center justify-center rounded-2xl border-4 border-cyan-400 bg-cyan-400/10">
                       <span class="-rotate-12 rounded-lg bg-cyan-500 px-7 py-3 text-4xl font-black text-gray-950 shadow-xl">
@@ -111,9 +132,6 @@
                   <div class="mt-4 flex flex-wrap gap-2">
                     <span class="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-200">
                       {{ restaurant.reviewCount }} reviews
-                    </span>
-                    <span class="rounded-full border border-gray-600 bg-gray-900 px-3 py-1 text-xs font-bold text-gray-300">
-                      Open until {{ restaurant.openUntil }}
                     </span>
                   </div>
 
