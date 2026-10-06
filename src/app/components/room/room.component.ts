@@ -1,7 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { CdkDragEnd, CdkDragMove, DragDropModule } from '@angular/cdk/drag-drop';
 import { Component, OnDestroy, OnInit, PLATFORM_ID, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import confetti from 'canvas-confetti';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseService } from '../../services/supabase.service';
@@ -52,7 +52,7 @@ type RestaurantCard = {
 @Component({
   selector: 'app-room',
   standalone: true,
-  imports: [DragDropModule],
+  imports: [DragDropModule, RouterLink],
   templateUrl: './room.component.html',
 })
 export class RoomComponent implements OnInit, OnDestroy {
@@ -70,11 +70,16 @@ export class RoomComponent implements OnInit, OnDestroy {
   readonly errorMessage = signal('');
   readonly swipeIntent = signal<SwipeDirection | null>(null);
   readonly swipeAnimation = signal<SwipeDirection | null>(null);
+  readonly deck = signal<RestaurantCard[]>([]);
   readonly restaurants = signal<RestaurantCard[]>([]);
   readonly isMatchFound = signal(false);
   readonly winningRestaurantId = signal<string | null>(null);
   readonly dismissedMatch = signal(false);
+  readonly isResetting = signal(false);
+  readonly resetError = signal('');
 
+  readonly remainingCount = computed(() => this.restaurants().length);
+  readonly isDeckEmpty = computed(() => this.remainingCount() === 0);
   readonly topRestaurant = computed(() => this.restaurants()[0] ?? null);
   readonly winningRestaurant = computed(() => {
     const id = this.winningRestaurantId();
@@ -185,6 +190,43 @@ export class RoomComponent implements OnInit, OnDestroy {
     this.dismissedMatch.set(true);
   }
 
+  showMatch(): void {
+    this.dismissedMatch.set(false);
+  }
+
+  async resetDeck(): Promise<void> {
+    if (this.isResetting() || this.isSwiping() || this.deck().length === 0) {
+      return;
+    }
+
+    this.isResetting.set(true);
+    this.resetError.set('');
+
+    try {
+      const { error, count } = await this.supabase.client
+        .from('swipes')
+        .delete({ count: 'exact' })
+        .eq('room_id', this.roomId())
+        .eq('user_id', this.userId());
+
+      if (error) {
+        throw error;
+      }
+
+      // Row-level security can silently block deletes, which would leave the old votes in place.
+      if (count === 0) {
+        throw new Error('No swipes were deleted');
+      }
+
+      this.restaurants.set(this.deck().map((restaurant) => ({ ...restaurant, activeImageIndex: 0 })));
+    } catch (error) {
+      console.error('[DineAlign] Deck reset failed:', error);
+      this.resetError.set('Could not clear your previous votes, so the deck was not reset. Please try again.');
+    } finally {
+      this.isResetting.set(false);
+    }
+  }
+
   private async loadRoom(): Promise<void> {
     const roomId = this.roomId();
 
@@ -202,6 +244,7 @@ export class RoomComponent implements OnInit, OnDestroy {
       this.targetNeighborhood.set(room.target_neighborhood);
 
       const restaurants = await this.fetchRestaurants(room.target_neighborhood);
+      this.deck.set(restaurants);
       this.restaurants.set(restaurants);
 
       if (room.status === 'matched' && room.winning_restaurant_id) {
